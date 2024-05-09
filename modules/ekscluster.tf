@@ -19,7 +19,7 @@ module "eks" {
     kube-proxy = {
       most_recent = true
     }
-    vpc-cni = {
+     vpc-cni = {
       most_recent = true
     }
   }
@@ -84,9 +84,9 @@ module "eks" {
       instance_types = ["t3.large", "t3a.large", "m6i.large"]
       capacity_type  = "SPOT"
 
-      min_size     = 1
-      max_size     = 2
-      desired_size = 1
+      min_size     = 2
+      max_size     = 3
+      desired_size = 2
 
       subnet_ids = module.vpc.private_subnets
     }

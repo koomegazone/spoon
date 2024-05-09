@@ -5,6 +5,10 @@ terraform {
       source  = "hashicorp/aws"
 
     }
+    kubectl = {
+      source  = "gavinbunney/kubectl"
+      version = ">= 1.7.0"
+    }
   }
 }
 
@@ -16,6 +20,17 @@ data "aws_eks_cluster_auth" "default" {
   name = module.eks.cluster_name
 }
 
+provider "helm" {
+  kubernetes {
+    host                   = module.eks.cluster_endpoint
+    cluster_ca_certificate = base64decode(module.eks.cluster_certificate_authority_data)
+    token                  = data.aws_eks_cluster_auth.default.token
+  }
+}
+
+
+
+
 provider "kubernetes" {
   host                   = module.eks.cluster_endpoint
   cluster_ca_certificate = base64decode(module.eks.cluster_certificate_authority_data)
@@ -25,7 +40,7 @@ provider "kubernetes" {
     api_version = "client.authentication.k8s.io/v1beta1"
     command     = "aws"
     # This requires the awscli to be installed locally where Terraform is executed
-    args = ["eks", "get-token", "--cluster-name", module.eks.cluster_name]
+    args = ["eks", "get-token", "--cluster-name", module.eks.cluster_name, "&&", "eks", "--region", local.region, "update-kubeconfig", "--name", local.name]
   }
 }
 
@@ -38,7 +53,8 @@ locals {
   region          = "ap-northeast-2"
 
   vpc_cidr = "10.110.0.0/16"
-  azs      = slice(data.aws_availability_zones.available.names, 0, 3)
+#  azs      = slice(data.aws_availability_zones.available.names, 0, 3)
+  azs = ["ap-northeast-2a","ap-northeast-2b"]
 
   tags = {
     env  = "spoon"
@@ -67,10 +83,11 @@ module "kms" {
   source  = "terraform-aws-modules/kms/aws"
   version = "1.1.0"
 
-  aliases               = ["eks/${local.name}"]
+  aliases               = ["eks/${local.name}-2"]
   description           = "${local.name} cluster encryption key"
   enable_default_policy = true
   key_owners            = [data.aws_caller_identity.current.arn]
 
   tags = local.tags
 }
+
